@@ -12,7 +12,7 @@ namespace Zombie_Pickup
         public override string Prefix { get; } = "ZP";
         public override PluginPriority Priority { get; } = PluginPriority.Default;
         public override Version RequiredExiledVersion { get; } = new(9, 2, 2);
-        public override Version Version { get; } = new(1, 0, 0);
+        public override Version Version { get; } = new(1, 1, 0);
 
         public static Plugin Singleton { get; private set; }
 
