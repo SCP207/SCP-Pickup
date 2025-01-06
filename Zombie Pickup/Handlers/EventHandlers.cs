@@ -11,66 +11,87 @@ using System.Linq;
 using CustomPlayerEffects;
 using Exiled.API.Features.Items;
 
-namespace Zombie_Pickup.Handlers {
-    public class EventHandlers {
-        private Plugin plugin = new();
+namespace Zombie_Pickup.Handlers
+{
+    public static class EventHandlers
+    {
+        private static Dictionary<Player, CoroutineHandle> currentCoroutines { get; } = new();
 
-        private Dictionary<Player, CoroutineHandle> currentCoroutines { get; } = new();
-
-        public EventHandlers(Plugin main) {
-            plugin = main;
+        public static void Register()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole += OnRoleChange;
+            Exiled.Events.Handlers.Player.TogglingNoClip += OnNoClipActivate;
         }
 
-        public void OnRoleChange(ChangingRoleEventArgs ev) {
-            if (ev.NewRole == RoleTypeId.Scp0492) {
-                ev.Player.ShowHint(plugin.Config.spawnMessage);
-            } else {
-                if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
+        public static void Unregister()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole -= OnRoleChange;
+            Exiled.Events.Handlers.Player.TogglingNoClip -= OnNoClipActivate;
+        }
+
+        public static void OnRoleChange(ChangingRoleEventArgs ev)
+        {
+            if (ev.NewRole == RoleTypeId.Scp0492)
+            {
+                ev.Player.ShowHint(Plugin.Singleton.Config.spawnMessage);
+            }
+            else
+            {
+                if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine))
+                {
                     Timing.KillCoroutines(currentCoroutine);
                     currentCoroutines.Remove(ev.Player);
                 }
             }
         }
 
-        public void OnNoClipActivate(TogglingNoClipEventArgs ev) {
-            if (ev.Player.Role == RoleTypeId.Scp0492) {
-                if (!ev.Player.HasItem(ItemType.SCP1344)) {
-                    if (Physics.Raycast(ev.Player.CameraTransform.position, ev.Player.CameraTransform.forward, out RaycastHit hit, 5f, 1 << 9)) {
-                        GameObject gameObject = hit.collider.transform.root.gameObject;
+        public static void OnNoClipActivate(TogglingNoClipEventArgs ev)
+        {
+            if (ev.Player.Role != RoleTypeId.Scp0492) return;
+            if (!ev.Player.HasItem(ItemType.SCP1344))
+            {
+                if (Physics.Raycast(ev.Player.CameraTransform.position, ev.Player.CameraTransform.forward, out var hit,
+                        5f, 1 << 9))
+                {
+                    var gameObject = hit.collider.transform.root.gameObject;
 
-                        if (gameObject != null) {
-                            Pickup pickup = Pickup.Get(gameObject);
+                    if (gameObject == null) return;
+                    var pickup = Pickup.Get(gameObject);
 
-                            if (pickup != null && plugin.Config.items.Contains((int)pickup.Type)) {
-                                if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
-                                    Timing.KillCoroutines(currentCoroutine);
-                                    currentCoroutines.Remove(ev.Player);
-                                    ev.Player.DisableEffect(EffectType.Ensnared);
-                                }
-
-                                currentCoroutines.Add(ev.Player, Timing.RunCoroutine(PickupItem(pickup, ev.Player)));
-                            }
-                        }
-                    } else {
-                        if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
-                            Timing.KillCoroutines(currentCoroutine);
-                            currentCoroutines.Remove(ev.Player);
-                            ev.Player.DisableEffect(EffectType.Ensnared);
-                            ev.Player.ShowHint(plugin.Config.disableMessage);
-                        }
+                    if (pickup == null || !Plugin.Singleton.Config.itemIds.Contains((int)pickup.Type)) return;
+                    if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine))
+                    {
+                        Timing.KillCoroutines(currentCoroutine);
+                        currentCoroutines.Remove(ev.Player);
+                        ev.Player.DisableEffect(EffectType.Ensnared);
                     }
-                } else {
-                    ev.Player.ShowHint(plugin.Config.scp1344Message);
+
+                    currentCoroutines.Add(ev.Player, Timing.RunCoroutine(PickupItem(pickup, ev.Player)));
                 }
+                else
+                {
+                    if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine))
+                    {
+                        Timing.KillCoroutines(currentCoroutine);
+                        currentCoroutines.Remove(ev.Player);
+                        ev.Player.DisableEffect(EffectType.Ensnared);
+                        ev.Player.ShowHint(Plugin.Singleton.Config.disableMessage);
+                    }
+                }
+            }
+            else
+            {
+                ev.Player.ShowHint(Plugin.Singleton.Config.scp1344Message);
             }
         }
 
-        private IEnumerator<float> PickupItem(Pickup pickup, Player player) {
+        private static IEnumerator<float> PickupItem(Pickup pickup, Player player)
+        {
             player.DropItems();
 
-            float pickupTime = pickup.PickupTimeForPlayer(player) * plugin.Config.pickupMultiplier;
+            var pickupTime = pickup.PickupTimeForPlayer(player) * Plugin.Singleton.Config.pickupMultiplier;
             player.EnableEffect(EffectType.Ensnared, pickupTime);
-            player.ShowHint(string.Format(plugin.Config.startMessage, pickup.Type), pickupTime);
+            player.ShowHint(string.Format(Plugin.Singleton.Config.startMessage, pickup.Type), pickupTime);
             yield return Timing.WaitForSeconds(pickupTime);
 
             currentCoroutines.Remove(player);

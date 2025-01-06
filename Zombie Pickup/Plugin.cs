@@ -1,10 +1,12 @@
 ﻿using System;
 using Exiled.API.Enums;
 using Exiled.API.Features;
-using PlayerHandlers = Exiled.Events.Handlers.Player;
+using Zombie_Pickup.Handlers;
 
-namespace Zombie_Pickup {
-    public class Plugin : Plugin<Config> {
+namespace Zombie_Pickup
+{
+    public class Plugin : Plugin<Config>
+    {
         public override string Author { get; } = "SCP-207";
         public override string Name { get; } = "Zombie Pickup";
         public override string Prefix { get; } = "ZP";
@@ -12,32 +14,31 @@ namespace Zombie_Pickup {
         public override Version RequiredExiledVersion { get; } = new(9, 2, 2);
         public override Version Version { get; } = new(1, 0, 0);
 
-        private Handlers.EventHandlers events;
+        public static Plugin Singleton { get; private set; }
 
-        public override void OnEnabled() {
-            RegisterCommands();
+        public override void OnEnabled()
+        {
+            Singleton = this;
+            RegisterCommandsAndEvents();
 
             base.OnEnabled();
         }
 
-        public override void OnDisabled() {
-            UnregisterCommands();
+        public override void OnDisabled()
+        {
+            UnregisterCommandsAndEvents();
 
             base.OnDisabled();
         }
 
-        private void RegisterCommands() {
-            events = new(this);
-
-            PlayerHandlers.ChangingRole += events.OnRoleChange;
-            PlayerHandlers.TogglingNoClip += events.OnNoClipActivate;
+        private void RegisterCommandsAndEvents()
+        {
+            EventHandlers.Register();
         }
 
-        private void UnregisterCommands() {
-            PlayerHandlers.ChangingRole -= events.OnRoleChange;
-            PlayerHandlers.TogglingNoClip -= events.OnNoClipActivate;
-
-            events = null;
+        private void UnregisterCommandsAndEvents()
+        {
+            EventHandlers.Unregister();
         }
     }
 }
