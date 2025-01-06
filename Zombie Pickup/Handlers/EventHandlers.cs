@@ -58,7 +58,7 @@ namespace Zombie_Pickup.Handlers
                     if (gameObject == null) return;
                     var pickup = Pickup.Get(gameObject);
 
-                    if (pickup == null || !Plugin.Singleton.Config.itemIds.Contains((int)pickup.Type)) return;
+                    if (pickup == null || !Plugin.Singleton.Config.items.Contains(pickup.Type)) return;
                     if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine))
                     {
                         Timing.KillCoroutines(currentCoroutine);

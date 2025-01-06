@@ -25,8 +25,6 @@ namespace Zombie_Pickup
         [Description("Message for it the zombie is holding SCP-1344")]
         public string scp1344Message { get; set; } = "<color=#C50000>You can't pick up items with SCP-1344</color>";
 
-        public int[] itemIds => items.Select(e => (int)e).ToArray();
-
         [Description("The item types of the items zombies can pick up (Enum)")]
         public ItemType[] items { get; set; } = {
             ItemType.KeycardJanitor,
