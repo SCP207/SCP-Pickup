@@ -31,7 +31,7 @@ namespace Zombie_Pickup.Handlers
 
         public static void OnRoleChange(ChangingRoleEventArgs ev)
         {
-            if (ev.Player.IsScp && Plugin.Singleton.Config.scpRoles.Contains(ev.Player.Role))
+            if (ev.Player.IsScp && Plugin.Singleton.Config.scpRoles.Contains(ev.NewRole))
             {
                 ev.Player.ShowHint(Plugin.Singleton.Config.spawnMessage);
             }
