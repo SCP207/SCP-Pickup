@@ -8,8 +8,8 @@
     <ProjectGuid>{37388131-EDBD-47C4-BFF5-55F580A3D07F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Zombie Pickup</RootNamespace>
-    <AssemblyName>Zombie Pickup</AssemblyName>
+    <RootNamespace>SCP Pickup</RootNamespace>
+    <AssemblyName>SCP Pickup</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

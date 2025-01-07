@@ -31,7 +31,7 @@ namespace Zombie_Pickup.Handlers
 
         public static void OnRoleChange(ChangingRoleEventArgs ev)
         {
-            if (ev.NewRole == RoleTypeId.Scp0492)
+            if (ev.Player.IsScp && Plugin.Singleton.Config.scpRoles.Contains(ev.Player.Role))
             {
                 ev.Player.ShowHint(Plugin.Singleton.Config.spawnMessage);
             }
@@ -47,7 +47,7 @@ namespace Zombie_Pickup.Handlers
 
         public static void OnNoClipActivate(TogglingNoClipEventArgs ev)
         {
-            if (ev.Player.Role != RoleTypeId.Scp0492) return;
+            if (!ev.Player.IsScp && !Plugin.Singleton.Config.scpRoles.Contains(ev.Player.Role)) return;
             if (!ev.Player.HasItem(ItemType.SCP1344))
             {
                 if (Physics.Raycast(ev.Player.CameraTransform.position, ev.Player.CameraTransform.forward, out var hit,

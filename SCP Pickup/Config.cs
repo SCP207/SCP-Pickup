@@ -1,5 +1,6 @@
 ﻿using Exiled.API.Features.Pickups;
 using Exiled.API.Interfaces;
+using PlayerRoles;
 using System.ComponentModel;
 using System.Linq;
 
@@ -13,7 +14,7 @@ namespace Zombie_Pickup
         [Description("Is debug mode enabled?")]
         public bool Debug { get; set; } = false;
 
-        [Description("The message to show for when a player role changes to be SCP-049-2")]
+        [Description("The message to show for when a player role changes to be an SCP")]
         public string spawnMessage { get; set; } = "Press <color=#50C878>Left Alt</color> to pick up items";
 
         [Description("The message for starting to pick up an item. Use \"{0}\" for the item name")]
@@ -22,10 +23,18 @@ namespace Zombie_Pickup
         [Description("The message for disabling the picking up of an item")]
         public string disableMessage { get; set; } = "<color=#C50000>You have stopped picking up an item</color>";
 
-        [Description("Message for it the zombie is holding SCP-1344")]
+        [Description("Message given when an SCP is holding SCP-1344")]
         public string scp1344Message { get; set; } = "<color=#C50000>You can't pick up items with SCP-1344</color>";
 
-        [Description("The item types of the items zombies can pick up (Enum)")]
+        [Description("A multiplier for how long it takes to pick up an item")]
+        public float pickupMultiplier { get; set; } = 1.5f;
+
+        [Description("The SCPs that can pick up items")]
+        public RoleTypeId[] scpRoles { get; set; } = {
+            RoleTypeId.Scp0492
+        };
+
+        [Description("The item types of the items the SCPs can pick up")]
         public ItemType[] items { get; set; } = {
             ItemType.KeycardJanitor,
             ItemType.KeycardScientist,
@@ -88,9 +97,5 @@ namespace Zombie_Pickup
             ItemType.SpecialCoal,
             ItemType.SCP1507Tape
         };
-
-
-        [Description("A multiplier for how long it takes to pick up an item")]
-        public float pickupMultiplier { get; set; } = 1.5f;
     }
 }
