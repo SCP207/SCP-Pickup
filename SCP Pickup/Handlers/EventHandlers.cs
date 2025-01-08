@@ -1,21 +1,30 @@
 ﻿using Exiled.Events.EventArgs.Player;
 using Exiled.API.Features;
 using UnityEngine;
+using UnityEngine.UI;
 using MEC;
 using System.Collections.Generic;
 using Exiled.API.Enums;
-using PlayerRoles;
 using Exiled.API.Features.Pickups;
-using System.Net.Http.Headers;
-using System.Linq;
-using CustomPlayerEffects;
 using Exiled.API.Features.Items;
+using UnityEngine.UIElements;
+using Utf8Json.Resolvers.Internal;
+using PlayerRoles;
 
 namespace Zombie_Pickup.Handlers
 {
     public static class EventHandlers
     {
         private static Dictionary<Player, CoroutineHandle> currentCoroutines { get; } = new();
+        private static List<RoleTypeId> scpRoles { get; } = new() {
+            RoleTypeId.Scp173,
+            RoleTypeId.Scp106,
+            RoleTypeId.Scp049,
+            RoleTypeId.Scp079,
+            RoleTypeId.Scp096,
+            RoleTypeId.Scp0492,
+            RoleTypeId.Scp939,
+        };
 
         public static void Register()
         {
@@ -31,7 +40,7 @@ namespace Zombie_Pickup.Handlers
 
         public static void OnRoleChange(ChangingRoleEventArgs ev)
         {
-            if (ev.Player.IsScp && Plugin.Singleton.Config.scpRoles.Contains(ev.NewRole))
+            if (scpRoles.Contains(ev.NewRole) && Plugin.Singleton.Config.scpRoles.Contains(ev.NewRole))
             {
                 ev.Player.ShowHint(Plugin.Singleton.Config.spawnMessage);
             }
@@ -47,7 +56,7 @@ namespace Zombie_Pickup.Handlers
 
         public static void OnNoClipActivate(TogglingNoClipEventArgs ev)
         {
-            if (!ev.Player.IsScp && !Plugin.Singleton.Config.scpRoles.Contains(ev.Player.Role)) return;
+            if (!ev.Player.IsScp || !Plugin.Singleton.Config.scpRoles.Contains(ev.Player.Role)) return;
             if (!ev.Player.HasItem(ItemType.SCP1344))
             {
                 if (Physics.Raycast(ev.Player.CameraTransform.position, ev.Player.CameraTransform.forward, out var hit,
