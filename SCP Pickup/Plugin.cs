@@ -9,7 +9,7 @@ namespace SCP_Pickup {
         public override string Name { get; } = "SCP Pickup";
         public override string Prefix { get; } = "SP";
         public override PluginPriority Priority { get; } = PluginPriority.Default;
-        public override Version RequiredExiledVersion { get; } = new(9, 2, 2);
+        public override Version RequiredExiledVersion { get; } = new(9, 3, 0);
         public override Version Version { get; } = new(2, 0, 3);
 
         public static Plugin Singleton { get; private set; }
