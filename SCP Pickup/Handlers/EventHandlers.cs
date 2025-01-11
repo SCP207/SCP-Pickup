@@ -1,113 +1,94 @@
 ﻿using Exiled.Events.EventArgs.Player;
 using Exiled.API.Features;
 using UnityEngine;
-using UnityEngine.UI;
 using MEC;
 using System.Collections.Generic;
 using Exiled.API.Enums;
 using Exiled.API.Features.Pickups;
-using Exiled.API.Features.Items;
-using UnityEngine.UIElements;
-using Utf8Json.Resolvers.Internal;
-using PlayerRoles;
+using Exiled.API.Extensions;
 
-namespace Zombie_Pickup.Handlers
-{
-    public static class EventHandlers
-    {
+namespace SCP_Pickup.Handlers {
+    public static class EventHandlers {
         private static Dictionary<Player, CoroutineHandle> currentCoroutines { get; } = new();
-        private static List<RoleTypeId> scpRoles { get; } = new() {
-            RoleTypeId.Scp173,
-            RoleTypeId.Scp106,
-            RoleTypeId.Scp049,
-            RoleTypeId.Scp079,
-            RoleTypeId.Scp096,
-            RoleTypeId.Scp0492,
-            RoleTypeId.Scp939,
-        };
 
-        public static void Register()
-        {
+        public static void Register() {
             Exiled.Events.Handlers.Player.ChangingRole += OnRoleChange;
             Exiled.Events.Handlers.Player.TogglingNoClip += OnNoClipActivate;
         }
 
-        public static void Unregister()
-        {
+        public static void Unregister() {
             Exiled.Events.Handlers.Player.ChangingRole -= OnRoleChange;
             Exiled.Events.Handlers.Player.TogglingNoClip -= OnNoClipActivate;
         }
 
-        public static void OnRoleChange(ChangingRoleEventArgs ev)
-        {
-            if (scpRoles.Contains(ev.NewRole) && Plugin.Singleton.Config.scpRoles.Contains(ev.NewRole))
-            {
+        private static void OnRoleChange(ChangingRoleEventArgs ev) {
+            // Checks if the player spawns in as an SCP that can pick up items and shows them the hint //
+            if (ev.NewRole.IsScp() && Plugin.Singleton.Config.scpRoles.Contains(ev.NewRole)) {
                 ev.Player.ShowHint(Plugin.Singleton.Config.spawnMessage);
-            }
-            else
-            {
-                if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine))
-                {
+            } else {
+                // Removes them from the dictionary if tey were previously picking up an item //
+                if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
                     Timing.KillCoroutines(currentCoroutine);
                     currentCoroutines.Remove(ev.Player);
                 }
             }
         }
 
-        public static void OnNoClipActivate(TogglingNoClipEventArgs ev)
-        {
+        private static void OnNoClipActivate(TogglingNoClipEventArgs ev) {
+            // Checks if the player is SCP or if thier role is in the list //
             if (!ev.Player.IsScp || !Plugin.Singleton.Config.scpRoles.Contains(ev.Player.Role)) return;
-            if (!ev.Player.HasItem(ItemType.SCP1344))
-            {
+
+            // Checks if the player has SCP-1344 //
+            if (!ev.Player.HasItem(ItemType.SCP1344)) {
+                // Casts a Raycast to only check for Pickups //
                 if (Physics.Raycast(ev.Player.CameraTransform.position, ev.Player.CameraTransform.forward, out var hit,
-                        5f, 1 << 9))
-                {
+                        5f, 1 << 9)) {
+                    // Picks up the item if it isn't null and is in the item list //
                     var gameObject = hit.collider.transform.root.gameObject;
 
                     if (gameObject == null) return;
                     var pickup = Pickup.Get(gameObject);
 
-                    if (pickup == null || !Plugin.Singleton.Config.items.Contains(pickup.Type)) return;
-                    if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine))
-                    {
+                    if (pickup == null || pickup.IsLocked || !Plugin.Singleton.Config.items.Contains(pickup.Type)) return;
+                    if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
                         Timing.KillCoroutines(currentCoroutine);
                         currentCoroutines.Remove(ev.Player);
                         ev.Player.DisableEffect(EffectType.Ensnared);
                     }
 
                     currentCoroutines.Add(ev.Player, Timing.RunCoroutine(PickupItem(pickup, ev.Player)));
-                }
-                else
-                {
-                    if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine))
-                    {
+                } else {
+                    // Cancels the pickup if they are picking up an item //
+                    if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
                         Timing.KillCoroutines(currentCoroutine);
                         currentCoroutines.Remove(ev.Player);
                         ev.Player.DisableEffect(EffectType.Ensnared);
                         ev.Player.ShowHint(Plugin.Singleton.Config.disableMessage);
                     }
                 }
-            }
-            else
-            {
+            } else {
+                // Shows the hint given when they attempt to pick up an item with SCP-1344 //
                 ev.Player.ShowHint(Plugin.Singleton.Config.scp1344Message);
             }
         }
 
-        private static IEnumerator<float> PickupItem(Pickup pickup, Player player)
-        {
+        private static IEnumerator<float> PickupItem(Pickup pickup, Player player) {
+            // Drops the players items //
             player.DropItems();
 
+            // Picks up the item with visual queues //
             var pickupTime = pickup.PickupTimeForPlayer(player) * Plugin.Singleton.Config.pickupMultiplier;
             player.EnableEffect(EffectType.Ensnared, pickupTime);
             player.ShowHint(string.Format(Plugin.Singleton.Config.startMessage, pickup.Type), pickupTime);
             yield return Timing.WaitForSeconds(pickupTime);
 
-            currentCoroutines.Remove(player);
-
+            // Adds the item to the inventory //
             var item = player.AddItem(pickup, InventorySystem.Items.ItemAddReason.PickedUp);
             player.CurrentItem = item;
             pickup.Destroy();
+
+            // Removes them from the courotines so they can no longer cancel the pickup //
+            currentCoroutines.Remove(player);
         }
     }
 }

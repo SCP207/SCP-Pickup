@@ -1,13 +1,9 @@
-﻿using Exiled.API.Features.Pickups;
-using Exiled.API.Interfaces;
+﻿using Exiled.API.Interfaces;
 using PlayerRoles;
 using System.ComponentModel;
-using System.Linq;
 
-namespace Zombie_Pickup
-{
-    public class Config : IConfig
-    {
+namespace SCP_Pickup {
+    public class Config : IConfig {
         [Description("Is this plugin enabled?")]
         public bool IsEnabled { get; set; } = true;
 
