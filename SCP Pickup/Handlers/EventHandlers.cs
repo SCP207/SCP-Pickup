@@ -7,18 +7,22 @@ using Exiled.API.Enums;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Extensions;
 
+using PlayerHandlers = Exiled.Events.Handlers.Player;
+
 namespace SCP_Pickup.Handlers {
     public static class EventHandlers {
         private static Dictionary<Player, CoroutineHandle> currentCoroutines { get; } = new();
 
         public static void Register() {
-            Exiled.Events.Handlers.Player.ChangingRole += OnRoleChange;
-            Exiled.Events.Handlers.Player.TogglingNoClip += OnNoClipActivate;
+            PlayerHandlers.ChangingRole += OnRoleChange;
+            PlayerHandlers.InteractingDoor += OnDoorInteract;
+            PlayerHandlers.TogglingNoClip += OnNoClipActivate;
         }
 
         public static void Unregister() {
-            Exiled.Events.Handlers.Player.ChangingRole -= OnRoleChange;
-            Exiled.Events.Handlers.Player.TogglingNoClip -= OnNoClipActivate;
+            PlayerHandlers.ChangingRole -= OnRoleChange;
+            PlayerHandlers.InteractingDoor -= OnDoorInteract;
+            PlayerHandlers.TogglingNoClip -= OnNoClipActivate;
         }
 
         private static void OnRoleChange(ChangingRoleEventArgs ev) {
@@ -31,6 +35,14 @@ namespace SCP_Pickup.Handlers {
                     Timing.KillCoroutines(currentCoroutine);
                     currentCoroutines.Remove(ev.Player);
                 }
+            }
+        }
+
+        private static void OnDoorInteract(InteractingDoorEventArgs ev) {
+            Log.Debug("(real)");
+            if (ev.Player.IsScp && ev.Door.IsCheckpoint) {
+                Log.Debug("Should be open");
+                ev.Door.IsOpen = (ev.Player.CurrentItem != null) ? true : false;
             }
         }
 
