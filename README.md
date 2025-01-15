@@ -1,4 +1,4 @@
-# Zombie Pickup
+# SCP Pickup
 This plugin allows you to let SCPs pick up items.
 
 In the configs, you can edit:
