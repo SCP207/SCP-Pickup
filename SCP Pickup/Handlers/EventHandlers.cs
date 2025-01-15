@@ -43,7 +43,6 @@ namespace SCP_Pickup.Handlers {
                 p.Destroy();
 
                 newPickup.Spawn(p.Position, p.Rotation);
-                Log.Debug(newPickup.GameObject.name);
             });
         }
         #endregion
@@ -84,7 +83,6 @@ namespace SCP_Pickup.Handlers {
 
                 // Picks up the item if it isn't null and is in the item list //
                 var gameObject = hit.collider.transform.root.gameObject;
-                Log.Debug(gameObject.name);
 
                 if (gameObject == null) return;
                 var pickup = Pickup.Get(gameObject);
