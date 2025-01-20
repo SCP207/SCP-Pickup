@@ -16,8 +16,8 @@ namespace SCP_Pickup {
         [Description("The message for starting to pick up an item. Use \"{0}\" for the item name")]
         public string startMessage { get; set; } = "Picking up <color=#00B7EB>{0}</color>";
 
-        [Description("The message for disabling the picking up of an item")]
-        public string disableMessage { get; set; } = "<color=#C50000>You have stopped picking up an item</color>";
+        [Description("The message for disabling the picking up of an item. Use \"{0}\" for the item name")]
+        public string disableMessage { get; set; } = "<color=#C50000>You have stopped picking up the {0}</color>";
 
         [Description("Message given when an SCP is holding SCP-1344")]
         public string scp1344Message { get; set; } = "<color=#C50000>You can't pick up items with SCP-1344</color>";

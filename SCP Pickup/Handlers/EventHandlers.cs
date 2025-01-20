@@ -1,51 +1,30 @@
-﻿using Exiled.Events.EventArgs.Map;
-using Exiled.Events.EventArgs.Player;
+﻿using Exiled.API.Enums;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
-using UnityEngine;
+using Exiled.API.Features.Pickups;
+using Exiled.Events.EventArgs.Player;
 using MEC;
 using System.Collections.Generic;
-using Exiled.API.Enums;
-using Exiled.API.Features.Pickups;
-using Exiled.API.Extensions;
-
-using ServerHandlers = Exiled.Events.Handlers.Server;
-using PlayerHandlers = Exiled.Events.Handlers.Player;
 using System.Linq;
-using Exiled.API.Features.Items;
+using UnityEngine;
+
+using PlayerHandlers = Exiled.Events.Handlers.Player;
 
 namespace SCP_Pickup.Handlers {
     public static class EventHandlers {
-        private static Dictionary<Player, CoroutineHandle> currentCoroutines { get; } = new();
+        private static Dictionary<Player, (CoroutineHandle, Pickup)> currentCoroutines { get; } = new();
 
         public static void Register() {
-            ServerHandlers.RoundStarted += OnRoundStart;
-
             PlayerHandlers.ChangingRole += OnRoleChange;
             PlayerHandlers.InteractingDoor += OnDoorInteract;
             PlayerHandlers.TogglingNoClip += OnNoClipActivate;
         }
 
         public static void Unregister() {
-            ServerHandlers.RoundStarted += OnRoundStart;
-
             PlayerHandlers.ChangingRole -= OnRoleChange;
             PlayerHandlers.InteractingDoor -= OnDoorInteract;
             PlayerHandlers.TogglingNoClip -= OnNoClipActivate;
         }
-
-        #region Server Events
-        private static void OnRoundStart() {
-            var oldList = Pickup.List.ToList();
-            oldList.ForEach(p => {
-                var newPickup = p.Clone();
-                Vector3 pos = p.Position;
-                Quaternion rot = p.Rotation;
-                p.Destroy();
-
-                newPickup.Spawn(p.Position, p.Rotation);
-            });
-        }
-        #endregion
 
         #region Player Events
         private static void OnRoleChange(ChangingRoleEventArgs ev) {
@@ -55,8 +34,10 @@ namespace SCP_Pickup.Handlers {
             } else {
                 // Removes them from the dictionary if tey were previously picking up an item //
                 if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
-                    Timing.KillCoroutines(currentCoroutine);
+                    Timing.KillCoroutines(currentCoroutine.Item1);
                     currentCoroutines.Remove(ev.Player);
+
+                    currentCoroutine.Item2.IsLocked = false;
                 }
             }
         }
@@ -79,29 +60,40 @@ namespace SCP_Pickup.Handlers {
 
             // Casts a Raycast to only check for Pickups //
             if (Physics.Raycast(ev.Player.CameraTransform.position, ev.Player.CameraTransform.forward, out var hit,
-                    5f, 1 << 9)) {
+                    5f,  1 << 9)) {
 
                 // Picks up the item if it isn't null and is in the item list //
-                var gameObject = hit.collider.transform.root.gameObject;
+                var gameObject = hit.collider.gameObject;
+
+                while (gameObject.transform.parent is not null
+                    && !gameObject.name.Contains("Pickup")) {
+
+                    gameObject = gameObject.transform.parent.gameObject;
+                }
 
                 if (gameObject == null) return;
                 var pickup = Pickup.Get(gameObject);
 
                 if (pickup is null || pickup.IsLocked || !Plugin.Singleton.Config.items.Contains(pickup.Type)) return;
                 if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
-                    Timing.KillCoroutines(currentCoroutine);
+                    Timing.KillCoroutines(currentCoroutine.Item1);
                     currentCoroutines.Remove(ev.Player);
                     ev.Player.DisableEffect(EffectType.Ensnared);
+
+                    currentCoroutine.Item2.IsLocked = false;
                 }
 
-                currentCoroutines.Add(ev.Player, Timing.RunCoroutine(PickupItem(pickup, ev.Player)));
+                currentCoroutines.Add(ev.Player, (Timing.RunCoroutine(PickupItem(pickup, ev.Player)), pickup));
             } else {
                 // Cancels the pickup if they are picking up an item //
                 if (currentCoroutines.TryGetValue(ev.Player, out var currentCoroutine)) {
-                    Timing.KillCoroutines(currentCoroutine);
+                    Timing.KillCoroutines(currentCoroutine.Item1);
                     currentCoroutines.Remove(ev.Player);
                     ev.Player.DisableEffect(EffectType.Ensnared);
-                    ev.Player.ShowHint(Plugin.Singleton.Config.disableMessage);
+                    ev.Player.ShowHint(string.Format(Plugin.Singleton.Config.disableMessage, currentCoroutine.Item2.Type));
+
+                    // Unlocked the item, allowing it to be picked up //
+                    currentCoroutine.Item2.IsLocked = false;
                 }
             }
         }
@@ -112,6 +104,9 @@ namespace SCP_Pickup.Handlers {
             // Drops the players items //
             player.DropItems();
 
+            // Prevents the item ftom being picked up by someone else //
+            pickup.IsLocked = true;
+
             // Picks up the item with visual queues //
             var pickupTime = pickup.PickupTimeForPlayer(player) * Plugin.Singleton.Config.pickupMultiplier;
             player.EnableEffect(EffectType.Ensnared, pickupTime);
@@ -121,7 +116,7 @@ namespace SCP_Pickup.Handlers {
             // Adds the item to the inventory //
             var item = player.AddItem(pickup, InventorySystem.Items.ItemAddReason.PickedUp);
             player.CurrentItem = item;
-            pickup.Destroy();
+            pickup.UnSpawn();
 
             // Removes them from the courotines so they can no longer cancel the pickup //
             currentCoroutines.Remove(player);
